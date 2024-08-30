@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Website - by Aisha Taqina</title>
+    <link rel="stylesheet" href="./css/styleIndex.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  </head>
+  <body>
+    <main>
+      <div class="container">
+        <h1 class="poppins-semibold">Weather Website</h1>
+        <p class="poppins-light">Check the Weather Forecast Here!</p>
+        <input
+          class="poppins-medium"
+          type="text"
+          id="locationInput"
+          placeholder="Enter a City"
+        />
+        <button
+          class="poppins-medium"
+          id="searchCity"
+          onclick="searchFetchWeather()"
+        >
+          Search
+        </button>
+        <div id="loader" style="display: none">
+          <span class="loader"></span>
+        </div>
+      </div>
+
+      <div
+        class="main-weather"
+        id="contain-main-forecast"
+        data-aos="fade-up"
+        data-aos-duration="3000"
+        style="display: none"
+      >
+        <div class="weather-data">
+          <div class="current-weather">
+            <div class="details">
+              <div>
+                <h1 class="poppins-semibold" id="city-name"></h1>
+                <h4 class="poppins-semibold" id="country"></h4>
+                <p class="poppins-regular" id="date-time-display"></p>
+                <div>
+                  <img id="iconWeather" />
+                </div>
+              </div>
+              <div>
+                <div class="additional-information">
+                  <h2 class="poppins-medium" id="day-night-greeting"></h2>
+                  <h1 class="temperature" id="temperature"></h1>
+                  <h4 class="poppins-medium" id="apparent-temperature"></h4>
+                  <h4 class="poppins-medium" id="humidity"></h4>
+                  <h4 class="poppins-medium" id="wind-speed"></h4>
+                </div>
+              </div>
+            </div>
+
+            <div class="days-forecast">
+              <h2 class="poppins-semibold" id="title-forecast">
+                Weather Forecast
+              </h2>
+              <div class="tab">
+                <button
+                  class="tablink active"
+                  onclick="weatherForecastDisplay(event,'dailycontent')"
+                >
+                  Daily
+                </button>
+                <button
+                  class="tablink"
+                  onclick="weatherForecastDisplay(event,'hourlycontent')"
+                >
+                  Hourly
+                </button>
+              </div>
+
+              <div id="allforecast">
+                <div class="poppins-regular" id="daily">
+                  <div id="dailycontent" class="tabcontent"></div>
+                </div>
+                <div class="poppins-regular" id="hourly">
+                  <div
+                    id="hourlycontent"
+                    class="tabcontent"
+                    style="display: none"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+      // function for show loader
+      function showLoader() {
+        document.getElementById("loader").style.display = "block";
+      }
+
+      // function for hide loader
+      function hideLoader() {
+        document.getElementById("loader").style.display = "none";
+      }
+
+      // helper to set  text content of an element by its ID.
+      const setDataToDiv = (div_id, value) => {
+        const selectedDiv = document.getElementById(div_id);
+        selectedDiv.textContent = value;
+      };
+
+      // converts date string to day name (forecast daily).
+      function getDayName(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", { weekday: "long" });
+      }
+
+      // change hourly time: "2024-08-24T00:00" to only time: "00:00" (forecast hourly)
+      function getTimeOnly(dateTimeString) {
+        const date = new Date(dateTimeString);
+        return date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+
+      function searchFetchWeather() {
+        // Clear previous content
+        document.getElementById("hourlycontent").innerHTML = null;
+        document.getElementById("dailycontent").innerHTML = null;
+
+        const searchCity = document.getElementById("locationInput").value;
+        async function getWeatherForecast(searchCity) {
+          showLoader();
+          try {
+            // Fetch geocoding data, get latitude, longitude, city name, and country
+            const geoResponse = await fetch(
+              `https://geocoding-api.open-meteo.com/v1/search?name=${searchCity}&count=1&language=en&format=json`
+            );
+            const geoData = await geoResponse.json();
+            console.log(geoData);
+
+            // Extract relevant data (destructure)
+            const { latitude, longitude, name, country } = geoData.results[0];
+            const API_key = "7042c7bb4b6eabc27223a21a425d020d";
+            const oneCallOpenWeather = await fetch(
+              `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_key}`
+            );
+            const openWeatherData = await oneCallOpenWeather.json();
+            console.log(openWeatherData);
+
+            // change the weather description to icon weather
+            function iconWeather() {
+              const { main } = openWeatherData.weather[0];
+              const img = document.getElementById("iconWeather");
+              if (main === "Clouds") {
+                img.src = "./svg/wi-cloudy.svg";
+                img.alt = "clouds";
+              } else if (main === "Clear") {
+                img.src = "./svg/wi-day-sunny.svg";
+                img.alt = "clear";
+              } else if (main === "Haze") {
+                img.src = "./svg/wi-fog.svg";
+                img.alt = "haze";
+              } else {
+                img.src = "./svg/wi-rain.svg";
+                img.alt = "rain";
+              }
+            }
+            iconWeather();
+
+            // Update city and country display
+            setDataToDiv("city-name", name);
+            setDataToDiv("country", country);
+
+            // Fetch weather forecast data
+            const forecastResponse = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
+            );
+            const forecastData = await forecastResponse.json();
+            console.log(forecastData);
+
+            // Extract relevant data (destructure)
+            const {
+              temperature_2m,
+              apparent_temperature,
+              relative_humidity_2m,
+              time: currentTime, // rename the same property names
+              weather_code: weather_code_current,
+              wind_speed_10m,
+              is_day,
+            } = forecastData.current;
+            const {
+              temperature_2m_max,
+              temperature_2m_min,
+              time,
+              weather_code: weather_code_daily,
+            } = forecastData.daily;
+            const {
+              time: timeHourly,
+              temperature_2m: temperatureHourly,
+              weather_code: weather_code_hourly,
+            } = forecastData.hourly;
+
+            // for icon forecast weather
+            const weatherIcons = [
+              { code: 0, src: "./svg/wi-day-sunny.svg", alt: "sunny" },
+              { code: 1, src: "./svg/wi-day-cloudy.svg", alt: "partly cloudy" },
+              { code: 2, src: "./svg/wi-day-cloudy.svg", alt: "partly cloudy" },
+              { code: 3, src: "./svg/wi-cloudy.svg", alt: "cloudy" },
+              { code: 4, src: "./svg/wi-smoke.svg", alt: "smoke or smog" },
+              { code: 5, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 6, src: "./svg/wi-fog.svg", alt: "ice fog" },
+              { code: 7, src: "./svg/wi-dust.svg", alt: "dust" },
+              { code: 8, src: "./svg/wi-dust.svg", alt: "dust" },
+              { code: 9, src: "./svg/wi-sandstorm.svg", alt: "sandstorm" },
+              { code: 10, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 11, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 12, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 13, src: "./svg/wi-lightning.svg", alt: "lightning" },
+              { code: 14, src: "./svg/wi-rain.svg", alt: "rainfall" },
+              { code: 15, src: "./svg/wi-rain.svg", alt: "rainfall" },
+              { code: 16, src: "./svg/wi-rain.svg", alt: "rainfall" },
+              { code: 17, src: "./svg/wi-thunderstorm.svg", alt: "thunder" },
+              { code: 18, src: "./svg/wi-thunderstorm.svg", alt: "thunder" },
+              { code: 19, src: "./svg/wi-cloud.svg", alt: "funnel cloud" },
+              { code: 20, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 21, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 22, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 23, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 24, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 25, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              {
+                code: 26,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              { code: 27, src: "./svg/wi-hail.svg", alt: "hail" },
+              { code: 28, src: "./svg/wi-fog.svg", alt: "ice fog" },
+              {
+                code: 29,
+                src: "./svg/wi-thunderstorm.svg",
+                alt: "thunderstrom",
+              },
+              { code: 30, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 31, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 32, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 33, src: "./svg/wi-dust.svg", alt: "dust sandstrom" },
+              { code: 34, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 35, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 36, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 37, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 38, src: "./svg/wi-sandstorm.svg", alt: "sandstrom" },
+              { code: 39, src: "./svg/wi-dust.svg", alt: "dust sandstrom" },
+              { code: 40, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 41, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 42, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 43, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 44, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 45, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 46, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 47, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 48, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 49, src: "./svg/wi-fog.svg", alt: "fog" },
+              { code: 50, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 51, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 52, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 53, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 54, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 55, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 56, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 57, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 58, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 59, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 60, src: "./svg/wi-rain-mix.svg", alt: "drizzling" },
+              { code: 61, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 62, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 63, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 64, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 65, src: "./svg/wi-rain.svg", alt: "rain" },
+              { code: 66, src: "./svg/wi-rain.svg", alt: "rain" },
+              {
+                code: 67,
+                src: "./svg/wi-rain-mix.svg",
+                alt: "rain mix and snow",
+              },
+              {
+                code: 68,
+                src: "./svg/wi-rain-mix.svg",
+                alt: "rain mix and snow",
+              },
+              {
+                code: 69,
+                src: "./svg/wi-rain-mix.svg",
+                alt: "rain mix and snow",
+              },
+              { code: 70, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 71, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 72, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 73, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 74, src: "./svg/wi-snow.svg", alt: "snow" },
+              { code: 75, src: "./svg/wi-snow.svg", alt: "snow" },
+              {
+                code: 76,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 77,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 78,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 79,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              { code: 80, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              { code: 81, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              { code: 82, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              { code: 83, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              { code: 84, src: "./svg/wi-rain.svg", alt: "radiant rain" },
+              {
+                code: 85,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 86,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 87,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 88,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 89,
+                src: "./svg/wi-hail.svg",
+                alt: "hail",
+              },
+              {
+                code: 90,
+                src: "./svg/wi-hail.svg",
+                alt: "hail",
+              },
+              {
+                code: 91,
+                src: "./svg/wi-storm-showers.svg",
+                alt: "storm and rain",
+              },
+              {
+                code: 92,
+                src: "./svg/wi-storm-showers.svg",
+                alt: "storm and rain",
+              },
+              {
+                code: 93,
+                src: "./svg/wi-snowflake-cold.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 94,
+                src: "./svg/wi-day-snow-thunderstorm.svg",
+                alt: "snowflake",
+              },
+              {
+                code: 95,
+                src: "./svg/wi-day-sleet-storm.svg",
+                alt: "sleet and storm",
+              },
+              {
+                code: 96,
+                src: "./svg/wi-day-sleet-storm.svg",
+                alt: "sleet and storm",
+              },
+              {
+                code: 97,
+                src: "./svg/wi-day-snow-thunderstorm.svg",
+                alt: "thunderstorm and snow",
+              },
+              {
+                code: 98,
+                src: "./svg/wi-storm-showers.svg",
+                alt: "storm and snow",
+              },
+              {
+                code: 99,
+                src: "./svg/wi-day-sleet-storm.svg",
+                alt: "sleet and storm",
+              },
+            ];
+
+            // for get icon weathor
+            function getWeatherIcon(iconFromWeatherCode) {
+              for (const icon of weatherIcons) {
+                if (iconFromWeatherCode === icon.code) {
+                  return `
+                      src="${icon.src}"
+                      alt="${icon.alt}"
+                    `;
+                }
+              }
+              // Handle case where iconFromWeatherCode is not found
+              return null;
+            }
+
+            // for display greeting
+            function getDayNightGreeting(isDay) {
+              if (isDay === 1) {
+                return "Have a Nice Day!";
+              } else {
+                return "Good Night!";
+              }
+            }
+            // Display the greeting
+            const greeting = getDayNightGreeting(is_day);
+
+            // set to display
+            setDataToDiv("day-night-greeting", greeting);
+            setDataToDiv("date-time-display", `${currentTime}`);
+            setDataToDiv("temperature", `${temperature_2m}°C`);
+            setDataToDiv(
+              "apparent-temperature",
+              `Feels like : ${apparent_temperature}°C`
+            );
+            setDataToDiv("wind-speed", `Wind : ${temperature_2m} km/h`);
+            setDataToDiv("humidity", `Humidity : ${relative_humidity_2m}%`);
+
+            // Generate and display daily forecast
+            // looping for get data in section main-weather; button daily
+            for (let i = 0; i < time.length; i++) {
+              const daily = `
+                     <div>
+                        <p id="days">${getDayName(time[i])}</p>
+                        <img
+                          id="iconWeatherDaily"
+                          ${getWeatherIcon(weather_code_daily[i])}
+                        />
+                        <div class="display-temp">
+                          <p id="temp-max-daily">${temperature_2m_max[i]}°C</p>
+                          <p id="temp-min-daily">${temperature_2m_min[i]}°C</p>
+                        </div>
+                      </div>
+                `;
+              document.getElementById("dailycontent").innerHTML += daily;
+            }
+
+            // Generate and display hourly forecast
+            // looping for get data in section main-weather; button hourly
+            for (let i = 0; i < timeHourly.length && i <= 24; i++) {
+              const hourly = `
+                     <div>
+                        <p>${getTimeOnly(timeHourly[i])}</p>
+                        <img
+                          id="iconWeatherHourly"
+                          ${getWeatherIcon(weather_code_hourly[i])}
+                        />
+                        <p>${temperatureHourly[i]}°C</p>
+                      </div>
+                    </div>
+                `;
+              document.getElementById("hourlycontent").innerHTML += hourly;
+            }
+
+            // Show and animate the forecast display
+            let idmainforecast = document.getElementById(
+              "contain-main-forecast"
+            );
+            idmainforecast.style.display = "block";
+            AOS.init();
+            idmainforecast.scrollIntoView({ behavior: "smooth" });
+            AOS.refresh();
+          } catch (error) {
+            console.log(error, "error catch");
+            alert(
+              "Location not found. Please check the city name and try again."
+            );
+            throw error;
+          } finally {
+            // Hide the loader after fetch attempt, whether successful or not
+            hideLoader();
+          }
+        }
+        getWeatherForecast(searchCity);
+      }
+
+      function weatherForecastDisplay(evt, timeFrequency) {
+        // let i, tabcontent, tablink;
+        const tabcontent = document.getElementsByClassName("tabcontent");
+        // only one tab content is displayed at a time
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+        const tablink = document.getElementsByClassName("tablink");
+        // removes the "active" class from their class names. So none of them are highlighted or marked as active.
+        for (i = 0; i < tablink.length; i++) {
+          tablink[i].className = tablink[i].className.replace(" active", "");
+        }
+        document.getElementById(timeFrequency).style.display = "flex";
+        evt.currentTarget.className += " active";
+      }
+    </script>
+  </body>
+</html>
